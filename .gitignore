@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+scan_history.json
+scan_report_*.json
+bulk_scan_*.csv
+email_scan_*.json
+*.log
+.DS_Store
