@@ -1,313 +1,550 @@
-<div align="center">
+# 🛡️ AI Phishing Link Scanner v3.0
 
-# 📊 Splunk Dashboard for Web Traffic Logs
+> Multi-layer phishing detection combining static analysis, WHOIS domain age check, VirusTotal + AbuseIPDB reputation, and AI semantic analysis (Gemini / GPT-4o). Now with a **Streamlit web UI**, **bulk CSV scanning**, and an **email header phishing analyzer**.
 
-![Splunk](https://img.shields.io/badge/Splunk-000000?style=for-the-badge&logo=splunk&logoColor=white)
-![Apache](https://img.shields.io/badge/Apache-CA2136?style=for-the-badge&logo=apache&logoColor=white)
-![JSON](https://img.shields.io/badge/JSON-000000?style=for-the-badge&logo=json&logoColor=white)
-![SIEM](https://img.shields.io/badge/SIEM-Security-blue?style=for-the-badge)
-![Status](https://img.shields.io/badge/Project-Completed-success?style=for-the-badge)
+Built by **Praharsh Kumar** — SOC Analyst | Detection Engineering | SC-200 Certified
 
-<img width="1728" height="550" alt="image" src="https://github.com/user-attachments/assets/a60f726e-f772-4fdc-a698-b37c3e3c34a8" />
-
-</div>
-
-## 📌 Project Overview
-This project demonstrates the creation of an **interactive Splunk dashboard** to analyze **Apache Web Traffic Logs** in JSON format.  
-The dashboard provides real-time insights into web activity, error trends, top resources, user IPs, and geographic traffic distribution.
-
-It is designed for **web monitoring, security analysis, and performance troubleshooting**.
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Version](https://img.shields.io/badge/version-3.0-orange)
+![Made by](https://img.shields.io/badge/made%20by-Praharsh%20Kumar-blueviolet)
 
 ---
 
-## 🎯 Objectives
-- Analyze overall web traffic volume
-- Monitor successful and failed HTTP responses
-- Identify top requested URIs
-- Track top users by IP address
-- Visualize web traffic geographically using a Choropleth Map
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [What's New in v3.0](#-whats-new-in-v30)
+- [How It Works](#-how-it-works)
+- [Project Structure](#-project-structure)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Usage](#-usage)
+- [Web UI — Streamlit](#-web-ui--streamlit)
+- [Email Header Scanner](#-email-header-scanner)
+- [Detection Logic](#-detection-logic)
+- [Risk Score Calculation](#-risk-score-calculation)
+- [Example Output](#-example-output)
+- [API Rate Limits](#-api-rate-limits)
+- [Troubleshooting](#-troubleshooting)
+- [Security Notes](#-security-notes)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
-## 🛠️ Tech Stack
-- **Splunk Enterprise**
-- **Apache Web Access Logs (JSON format)**
-- **SPL (Search Processing Language)**
+## 🔎 Overview
+
+Most phishing detection tools rely on a single source. That's not enough.
+
+This scanner runs every URL through **5 independent detection layers** and combines their signals into a single weighted risk score out of 100. Version 3.0 adds a full **Streamlit web UI**, **WHOIS domain age check**, **bulk CSV scanning**, and a dedicated **email header phishing analyzer**.
+
+**The question it answers:**
+
+> Is this link safe, suspicious, or malicious — and why?
 
 ---
 
-## 📂 Dataset Details
-- **Source**: `apache_mixed_access_full (1).json`
-- **Host**: `webserver`
-- **Sourcetype**: `_json`
-- **Key Fields**:
-  - `ip`
-  - `method`
-  - `uri`
-  - `status`
-  - `_time`
+## ✨ What's New in v3.0
+
+| Feature | v2.0 | v3.0 |
+|---|---|---|
+| Streamlit Web UI | ❌ | ✅ |
+| WHOIS domain age check | ❌ | ✅ |
+| CSV bulk scan (CLI + UI) | ❌ | ✅ |
+| Email header phishing analyzer | ❌ | ✅ |
+| SPF / DKIM / DMARC analysis | ❌ | ✅ |
+| Reply-To mismatch detection | ❌ | ✅ |
+| Brand spoofing in display name | ❌ | ✅ |
+| JSON download from web UI | ❌ | ✅ |
+| AbuseIPDB reputation | ✅ | ✅ |
+| VirusTotal 70+ AV engines | ✅ | ✅ |
+| MITRE ATT&CK mapping | ✅ | ✅ |
+| Scan history log | ✅ | ✅ |
 
 ---
 
-## ⚙️ Lab Setup & Configuration
+## 🔬 How It Works
 
-### 1️⃣ Data Ingestion
-1. Login to Splunk as **Administrator**
-2. Navigate to:  
+```
+URL Input
+   │
+   ├── [1] URL Validation
+   │       → Regex structure check
+   │       → Rejects malformed input early
+   │
+   ├── [2] Static Analysis
+   │       → IP address in URL
+   │       → Typosquatting patterns (amaz0n, g00gle, paypa1...)
+   │       → Suspicious TLD detection (.tk .ml .ga .cf .gq .pw .xyz)
+   │       → Keyword scanning (login, verify, suspend, urgent...)
+   │       → HTTP vs HTTPS, URL length, subdomains, hex encoding
+   │       → Risk score: 0–100
+   │
+   ├── [3] WHOIS Domain Age Check
+   │       → Looks up domain registration date
+   │       → Flags domains < 30 days old as HIGH risk
+   │       → Flags domains < 90 days old as MEDIUM risk
+   │       → Phishing domains are almost always newly registered
+   │
+   ├── [4] VirusTotal Reputation Check
+   │       → Submits URL to VirusTotal API v3
+   │       → Waits for 70+ AV engine analysis
+   │       → Returns malicious / suspicious / harmless counts
+   │
+   ├── [5] AbuseIPDB Check (if URL contains an IP address)
+   │       → Checks IP abuse confidence score
+   │       → Returns total reports, country, ISP, Tor node status
+   │
+   ├── [6] AI Semantic Analysis
+   │       → Sends URL + static results + domain age to Gemini / GPT-4o
+   │       → Returns VERDICT, CONFIDENCE, RED FLAGS, MITRE technique, REASONING
+   │
+   └── Final Verdict
+           → Weighted risk score out of 100
+           → SAFE (0–39) / SUSPICIOUS (40–69) / MALICIOUS (70–100)
+           → Saved to scan_history.json
+           → Exportable as JSON or CSV
 ```
 
-Settings → Add Data → Upload
-
-````
-<img width="1919" height="963" alt="1" src="https://github.com/user-attachments/assets/e1c658ee-f45d-41d4-b84b-3959a461ec4c" />
-<img width="1919" height="964" alt="2" src="https://github.com/user-attachments/assets/8117a740-d6ef-414c-9cbe-4be1858678b1" />
-<img width="1919" height="963" alt="3" src="https://github.com/user-attachments/assets/15dc8825-d719-4044-b610-729bf318b348" />
-
-3. Upload `apache_logs.json`
-<img width="1919" height="963" alt="4" src="https://github.com/user-attachments/assets/93051fc2-36e7-40d7-b252-cdb2a1b5f21a" />
-<img width="1918" height="959" alt="5" src="https://github.com/user-attachments/assets/77ce8b1f-8157-4606-a136-837df8e71613" />
-<img width="1919" height="1079" alt="6" src="https://github.com/user-attachments/assets/ed55e849-2393-4853-82f7-7e88d7436ece" />
-<img width="1919" height="965" alt="7" src="https://github.com/user-attachments/assets/41ea4a1b-e874-4711-a3c7-5e4f129750ee" />
-
-4. Set:
-- Source Type: `_json`
-- Host: `webserver`
-<img width="1919" height="963" alt="8" src="https://github.com/user-attachments/assets/c0a50776-5bbb-4486-b662-c7d41420b090" />
-<img width="1919" height="963" alt="9" src="https://github.com/user-attachments/assets/fdd0f4be-de64-4346-8db9-fc0dcacc2ae7" />
-<img width="1919" height="960" alt="10" src="https://github.com/user-attachments/assets/3bd0eeb4-737b-4f71-84ae-3c821bad4b39" />
-<img width="1919" height="962" alt="11" src="https://github.com/user-attachments/assets/b688a4df-41cb-480c-85a8-1b8df52e49a8" />
-
-5. Review and submit
-<img width="1919" height="961" alt="12" src="https://github.com/user-attachments/assets/98fe856b-c2b9-47bd-b616-4c37950d7a6b" />
-<img width="1919" height="966" alt="13" src="https://github.com/user-attachments/assets/ca655c6a-feb3-434b-994a-fb231b96bec5" />
-
-Verify ingestion:
-```spl
-source="apache_logs.json"
-````
-
 ---
 
-## 📊 Dashboard Creation
+## 📁 Project Structure
 
-### Dashboard Details
-
-* **Dashboard Name**: Web Traffic Logs Dashboard
-* **Dashboard Type**: Classic Dashboard
-* **Permissions**: Private
-<img width="1919" height="963" alt="14" src="https://github.com/user-attachments/assets/d5ed37e3-b921-4e53-8454-92b0cff3edff" />
-<img width="1919" height="965" alt="15" src="https://github.com/user-attachments/assets/dba5a3b6-e294-482a-b801-0f07121bffb3" />
-<img width="1919" height="966" alt="16" src="https://github.com/user-attachments/assets/a23e1b5a-14f5-4705-8f4a-76be2fe2c50c" />
-
----
-
-## ⏱️ Task 0: Time Range Input
-
-A shared time picker is used to ensure consistency across all panels.
-
-* **Label**: Time Range
-* **Token**: `time_range`
-
-> All panels use the shared time picker token `time_range`.
-<img width="1919" height="964" alt="17" src="https://github.com/user-attachments/assets/f2c58ad0-2ad2-4277-b8d1-0025a0538b0a" />
-<img width="1919" height="966" alt="18" src="https://github.com/user-attachments/assets/24a441b0-0dc5-4060-96d7-dfcae9af0a76" />
-<img width="1919" height="963" alt="19" src="https://github.com/user-attachments/assets/98359c3a-704a-434e-a8e0-dccaf7d99f60" />
-<img width="1919" height="962" alt="20" src="https://github.com/user-attachments/assets/ca572828-6f52-4e81-b75f-6ec29be5890c" />
-<img width="1919" height="967" alt="21" src="https://github.com/user-attachments/assets/ebcabe36-97dc-4b3e-b2c9-2e321bf4d75c" />
-<img width="1919" height="964" alt="22" src="https://github.com/user-attachments/assets/95857fe4-72e4-41b6-a6fe-93a96c1361da" />
-<img width="1919" height="963" alt="23" src="https://github.com/user-attachments/assets/a9fb7f4d-e1cc-416e-ac20-c261bb708f0f" />
-<img width="1919" height="963" alt="24" src="https://github.com/user-attachments/assets/a71f80a8-bc62-4b0e-858b-6faf0bd37bec" />
-<img width="1919" height="963" alt="25" src="https://github.com/user-attachments/assets/d2bdb1d9-4983-44ac-a3aa-f92414b58bf8" />
-
----
-
-## 📈 Task 1: Web Activities
-
-### 🔹 Total Web Requests
-
-**Visualization**: Single Value
-
-```spl
-source="apache_logs.json" host="webserver" sourcetype="_json"
-| stats count AS "Total Web Requests"
 ```
-<img width="1919" height="964" alt="26" src="https://github.com/user-attachments/assets/05370e00-2534-431c-9c53-cf099a35a450" />
-<img width="1917" height="965" alt="27" src="https://github.com/user-attachments/assets/9c42f43f-016d-438e-9f9d-1d710ba5a4f6" />
-<img width="1919" height="964" alt="28" src="https://github.com/user-attachments/assets/7681cc22-6dfb-4625-b452-369d497918e6" />
-<img width="1919" height="967" alt="29" src="https://github.com/user-attachments/assets/f6d255cb-173e-460e-b020-cf871df8a6a4" />
-<img width="1919" height="964" alt="30" src="https://github.com/user-attachments/assets/b3a09dd8-2654-43e0-9341-6e913b193dca" />
-<img width="1919" height="965" alt="31" src="https://github.com/user-attachments/assets/d6f2aa68-68cd-4cf0-af65-847900ade8c0" />
-<img width="1919" height="964" alt="32" src="https://github.com/user-attachments/assets/b36e0bf2-5721-4182-89aa-a6714c55c23e" />
-<img width="1919" height="967" alt="33" src="https://github.com/user-attachments/assets/b2bd1ff5-2df7-4933-9111-404c8a30e7d6" />
-<img width="1919" height="967" alt="34" src="https://github.com/user-attachments/assets/fbd1f4fe-4f76-4f0e-972f-4aa2b69786ca" />
-<img width="1919" height="966" alt="35" src="https://github.com/user-attachments/assets/c98ebcae-9c7d-4d0d-bd87-e3a0781060bb" />
-<img width="1919" height="967" alt="36" src="https://github.com/user-attachments/assets/031c81e5-626a-4787-94fa-707321feba40" />
-<img width="1919" height="966" alt="37" src="https://github.com/user-attachments/assets/60930f37-a09e-413e-9c3e-5cf2bb8d0959" />
-<img width="1919" height="967" alt="38" src="https://github.com/user-attachments/assets/0aa6322d-9360-4196-a2a3-61b9b79c010c" />
-<img width="1919" height="966" alt="39" src="https://github.com/user-attachments/assets/367a0dbc-f806-4d49-b4e3-6711115df3b1" />
-<img width="1919" height="967" alt="40" src="https://github.com/user-attachments/assets/902f21f9-d075-4e41-ad20-76a76f58f5fe" />
-<img width="1919" height="964" alt="41" src="https://github.com/user-attachments/assets/63c6f64d-707b-4cb9-8783-dc783688805b" />
-
----
-
-### 🔹 Successful Responses (200 OK)
-
-**Visualization**: Single Value
-
-```spl
-source="apache_mixed_logs.json" host="webserver" sourcetype="_json" method=GET status=200
-| stats count AS "Successful Responses"
+AI-Phishing-Scanner-v3/
+│
+├── phishing_scanner.py       # Main scanner — all 5 detection layers
+├── app.py                    # Streamlit web UI
+├── email_scanner.py          # Email header phishing analyzer
+├── requirements.txt          # All Python dependencies
+├── .env.example              # API key template — rename to .env
+├── .gitignore                # Excludes .env, venv, reports, cache
+├── sample_urls.csv           # Sample CSV for bulk scan testing
+├── README.md                 # This file
+│
+└── (auto-generated on use)
+    ├── scan_history.json              # Logs every scan
+    ├── scan_report_TIMESTAMP.json     # Per-scan JSON export
+    ├── bulk_scan_TIMESTAMP.csv        # Bulk scan CSV output
+    └── email_scan_TIMESTAMP.json      # Email scan JSON export
 ```
-<img width="1919" height="964" alt="42" src="https://github.com/user-attachments/assets/2e2efe0b-cd0e-4337-897f-f4e2c726a228" />
-<img width="1919" height="964" alt="43" src="https://github.com/user-attachments/assets/a0bad5f1-d765-4b3b-90bc-05b1522cb124" />
-<img width="1919" height="964" alt="44" src="https://github.com/user-attachments/assets/5a40cb5a-192a-4381-81a9-ed09c6a078c1" />
-<img width="1919" height="966" alt="45" src="https://github.com/user-attachments/assets/b6f0e4ad-75d8-4912-beb2-31c7d659e8a3" />
-<img width="1919" height="965" alt="46" src="https://github.com/user-attachments/assets/a8bfba9e-65f2-48a1-9519-c91eeffabeeb" />
-<img width="1919" height="968" alt="47" src="https://github.com/user-attachments/assets/32703d17-722f-4743-a697-2dccb28fe098" />
-<img width="1919" height="967" alt="48" src="https://github.com/user-attachments/assets/0eb8f477-02d2-47c7-88ec-76c5dc66ac12" />
-<img width="1919" height="968" alt="49" src="https://github.com/user-attachments/assets/240434b4-2287-4454-946f-ea1529220ccb" />
 
 ---
 
-### 🔹 Client Errors (4xx)
+## 📦 Requirements
 
-**Visualization**: Single Value
+### Software
 
-```spl
-source="apache_mixed_access_full (1).json" host="webserver" sourcetype="_json"
-| where status>=400 AND status<500
-| stats count AS "Client Errors"
+- Python 3.8 or higher
+- pip
+- Internet connection for API calls
+
+### API Keys
+
+| Service | Purpose | Cost | Get Key |
+|---|---|---|---|
+| **VirusTotal** | URL reputation — 70+ AV engines | Free (4 req/min) | [virustotal.com](https://www.virustotal.com/gui/join-us) |
+| **Google Gemini** | AI semantic analysis | Free tier available | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| **OpenAI** | AI analysis (alternative to Gemini) | ~$0.01–0.03/scan | [platform.openai.com](https://platform.openai.com/api-keys) |
+| **AbuseIPDB** | IP reputation check | Free (1,000/day) | [abuseipdb.com](https://www.abuseipdb.com/register) |
+
+> You only need **one** LLM provider — Gemini or OpenAI.
+> AbuseIPDB is optional — the scanner skips it automatically if no key is provided.
+> WHOIS domain age check is **free with no API key**.
+
+### Python Packages
+
+| Package | Version | Purpose |
+|---|---|---|
+| `requests` | 2.31.0+ | HTTP calls to APIs |
+| `python-dotenv` | 1.0.0+ | Load `.env` config |
+| `colorama` | 0.4.6+ | Colored terminal output |
+| `google-generativeai` | 0.3.0+ | Gemini AI integration |
+| `openai` | 1.12.0+ | OpenAI GPT integration |
+| `streamlit` | 1.32.0+ | Web UI |
+| `pandas` | 2.0.0+ | CSV processing in web UI |
+| `python-whois` | 0.9.0+ | WHOIS domain age lookup |
+
+---
+
+## 🚀 Installation
+
+### Step 1 — Clone the repository
+
+```bash
+git clone https://github.com/praharshkumar23/AI-Phishing-Scanner-v3.git
+cd AI-Phishing-Scanner-v3
 ```
-<img width="1919" height="967" alt="50" src="https://github.com/user-attachments/assets/a0fd2efb-b646-45c1-a070-7587e6483b03" />
-<img width="1919" height="970" alt="51" src="https://github.com/user-attachments/assets/1ef29379-baa2-4699-8621-a0913bb0aea9" />
-<img width="1919" height="968" alt="52" src="https://github.com/user-attachments/assets/4a9550f0-7a39-4923-b9b8-007e5d886b46" />
-<img width="1919" height="964" alt="53" src="https://github.com/user-attachments/assets/61e7fd48-40b4-48e0-9a5d-c75cc98e72ad" />
-<img width="1919" height="966" alt="54" src="https://github.com/user-attachments/assets/6d91ad58-aaa8-4847-b7d7-1e5bd1701442" />
-<img width="1919" height="963" alt="55" src="https://github.com/user-attachments/assets/edbaf631-05d1-4049-9b91-5d4defbfa0a7" />
-<img width="1918" height="966" alt="56" src="https://github.com/user-attachments/assets/a7a6003f-9da3-47e0-9cac-9aa75a7d2034" />
 
----
+### Step 2 — Create a virtual environment
 
-### 🔹 Server Errors (5xx)
-
-**Visualization**: Single Value
-
-```spl
-source="apache_logs.json" host="webserver" sourcetype="_json"
-| where status>=500 AND status<600
-| stats count AS "Server Errors"
+```bash
+python -m venv venv
 ```
-<img width="1919" height="964" alt="57" src="https://github.com/user-attachments/assets/46c1b6a7-0dd6-4cea-b91c-9059387bd466" />
-<img width="1919" height="968" alt="58" src="https://github.com/user-attachments/assets/a828df3f-d883-4a5c-bb5f-449203f1e062" />
-<img width="1918" height="969" alt="59" src="https://github.com/user-attachments/assets/36ec4261-b259-4b1e-89d5-758eb5db6982" />
-<img width="1919" height="968" alt="60" src="https://github.com/user-attachments/assets/c690fee5-3515-406b-acfc-39465ca6aedc" />
-<img width="1919" height="961" alt="61" src="https://github.com/user-attachments/assets/13bf59ea-6a3f-48ed-a3c8-99d78dfe0d6a" />
-<img width="1919" height="966" alt="62" src="https://github.com/user-attachments/assets/60a3fe67-9042-4fcd-9a6a-60a2c7d1016b" />
-<img width="1919" height="966" alt="63" src="https://github.com/user-attachments/assets/0831d399-1f42-46c2-b0fb-2c2d105adb37" />
-<img width="1919" height="964" alt="64" src="https://github.com/user-attachments/assets/98cc9d40-0aec-49fb-b5b8-3454fef59ccd" />
 
----
-
-## 📊 Task 2: Web Statistics
-
-### 🔹 Top Requested URIs
-
-**Visualization**: Bar Chart
-
-```spl
-source="apache_logs.json" host="webserver" sourcetype="_json"
-| stats count AS Hits by uri
-| sort - Hits
+**Windows:**
+```bash
+venv\Scripts\activate
 ```
-<img width="1919" height="971" alt="65" src="https://github.com/user-attachments/assets/f332e846-ae48-4dc9-95b1-95291f59e0a3" />
-<img width="1919" height="967" alt="66" src="https://github.com/user-attachments/assets/07d12630-1337-4830-9f9c-5c3babcc908d" />
-<img width="1919" height="968" alt="67" src="https://github.com/user-attachments/assets/5ceaa8cb-403b-4c70-a123-2149dd1436f6" />
-<img width="1919" height="965" alt="68" src="https://github.com/user-attachments/assets/fcda127a-af1b-41b1-b95c-2906e76a2491" />
-<img width="1919" height="964" alt="69" src="https://github.com/user-attachments/assets/b1010c31-df9c-4292-98e8-ca7ae856cbab" />
-<img width="1919" height="966" alt="70" src="https://github.com/user-attachments/assets/df8d7076-1d39-4c10-a5d0-42ed5a711cfa" />
-<img width="1919" height="967" alt="71" src="https://github.com/user-attachments/assets/154aae7d-c826-4d63-813e-65f714b8f718" />
-<img width="1919" height="972" alt="72" src="https://github.com/user-attachments/assets/be541cfc-58ab-41fb-ba7f-99bf0e437633" />
-<img width="1919" height="969" alt="73" src="https://github.com/user-attachments/assets/3e7df434-270c-444e-bfc9-86efa82123f2" />
 
----
-
-### 🔹 Top Users by IP Address
-
-**Visualization**: Bar Chart
-
-```spl
-source="apache_logs.json" host="webserver" sourcetype="_json"
-| stats count AS Requests by ip
-| sort - Requests
+**Linux / macOS:**
+```bash
+source venv/bin/activate
 ```
-<img width="1919" height="969" alt="74" src="https://github.com/user-attachments/assets/98b00d02-9944-471b-b68c-44dc25a84f88" />
-<img width="1919" height="968" alt="75" src="https://github.com/user-attachments/assets/528ff3b8-aa85-4702-bd1a-2d9de73b25d0" />
-<img width="1919" height="970" alt="76" src="https://github.com/user-attachments/assets/270ef4a4-53c9-471a-ad13-5b567d21f01d" />
-<img width="1919" height="966" alt="77" src="https://github.com/user-attachments/assets/be538bfa-8963-4a08-b050-a8afe6a51d89" />
-<img width="1919" height="967" alt="78" src="https://github.com/user-attachments/assets/d381b012-7716-4b7d-b9e0-674fafb5f301" />
-<img width="1919" height="965" alt="79" src="https://github.com/user-attachments/assets/5c3f9b70-bae4-4d06-bf98-82161bde5e5d" />
-<img width="1919" height="966" alt="81" src="https://github.com/user-attachments/assets/859e3aa9-faee-4062-b867-d3bb1ca730d6" />
-<img width="1919" height="966" alt="82" src="https://github.com/user-attachments/assets/ed313093-29cc-4b03-8372-1e6519517aea" />
-<img width="1919" height="967" alt="83" src="https://github.com/user-attachments/assets/206372f7-498e-4062-97e1-a8b2373612dd" />
 
----
+### Step 3 — Install dependencies
 
-## 🌍 Task 3: Web Traffic by Client IP (Geographic View)
-
-### 🔹 Choropleth Map
-
-**Visualization**: Choropleth Map
-
-```spl
-source="apache_mixed_access_full (1).json" host="webserver" sourcetype="_json" method=GET
-| table ip
-| iplocation ip
-| stats count by Country
-| geom geo_countries featureIdField="Country"
+```bash
+pip install -r requirements.txt
 ```
-<img width="1918" height="964" alt="84" src="https://github.com/user-attachments/assets/f8692378-76a0-4314-9d81-2089ca374331" />
-<img width="1919" height="967" alt="85" src="https://github.com/user-attachments/assets/58fc6232-8d3a-4ce2-bc19-fa8f3d2a5c0f" />
-<img width="1918" height="966" alt="86" src="https://github.com/user-attachments/assets/22ba7412-bee9-475e-b293-c2b75368efc6" />
-<img width="1919" height="963" alt="87" src="https://github.com/user-attachments/assets/be72d3f7-a5e2-425d-86f3-d59fbe2d68c9" />
-<img width="1919" height="969" alt="88" src="https://github.com/user-attachments/assets/0109e70e-5661-4704-9c9d-d9165841852f" />
-<img width="1919" height="965" alt="89" src="https://github.com/user-attachments/assets/9dd69d10-e7d6-4075-a2fc-70e5c7432e16" />
-<img width="1919" height="1079" alt="90" src="https://github.com/user-attachments/assets/7b5be4eb-d873-4606-bff6-0718a8514e9f" />
+
+### Step 4 — Verify installation
+
+```bash
+python --version
+pip list
+```
+
+You should see all 8 packages listed.
 
 ---
 
-## ✅ Key Features
+## ⚙️ Configuration
 
-* 📊 Real-time traffic monitoring
-* 🚨 Error detection (4xx & 5xx)
-* 🌐 Geographic traffic visualization
-* 🔍 Insight into popular resources and users
-* 🔐 Useful for security and anomaly detection
+### Step 1 — Create your `.env` file
+
+**Windows:**
+```bash
+copy .env.example .env
+```
+
+**Linux / macOS:**
+```bash
+cp .env.example .env
+```
+
+### Step 2 — Add your API keys
+
+Open `.env` and fill in your keys:
+
+```ini
+# VirusTotal API Key (required)
+VIRUSTOTAL_API_KEY=your_virustotal_key_here
+
+# AbuseIPDB API Key (optional)
+ABUSEIPDB_API_KEY=your_abuseipdb_key_here
+
+# LLM Provider — write: gemini or openai
+LLM_PROVIDER=gemini
+
+# Google Gemini API Key (recommended — free)
+GOOGLE_API_KEY=your_gemini_key_here
+
+# OpenAI API Key (alternative — paid)
+OPENAI_API_KEY=your_openai_key_here
+```
+
+> ⚠️ Never push `.env` to GitHub. Already blocked in `.gitignore`.
 
 ---
 
-## 📌 Use Cases
+## 💻 Usage
 
-* Web server monitoring
-* Security analysis
-* Traffic trend analysis
-* Performance troubleshooting
-* Academic and lab submissions
+### Terminal — single URL
+
+```bash
+python phishing_scanner.py "https://example.com"
+```
+
+### Terminal — interactive menu
+
+```bash
+python phishing_scanner.py
+```
+
+Menu options:
+```
+  1  Scan a single URL
+  2  Batch scan (multiple URLs)
+  3  Scan from CSV file
+  4  View scan history
+  q  Quit
+```
+
+### Terminal — CSV bulk scan
+
+```bash
+python phishing_scanner.py sample_urls.csv
+```
+
+CSV must have a column named `url`. Output saved as `bulk_scan_TIMESTAMP.csv`.
 
 ---
 
-## 🧾 Conclusion
+## 🌐 Web UI — Streamlit
 
-This project delivers a **comprehensive Splunk dashboard** for analyzing web traffic logs using SPL queries and visual analytics.
-It enables administrators and security analysts to quickly understand traffic behavior, detect anomalies, and make informed decisions.
+Run the web interface:
+
+```bash
+streamlit run app.py
+```
+
+Opens at `http://localhost:8501` in your browser.
+
+**Tabs:**
+
+- **Single URL Scan** — enter any URL, see color-coded verdict with full breakdown
+- **Bulk CSV Scan** — upload a CSV file, scan all URLs, download report
+- **Scan History** — view all previous scans, export as CSV
+
+**Deploy free on Streamlit Cloud:**
+
+1. Push project to GitHub.
+2. Go to [share.streamlit.io](https://share.streamlit.io).
+3. Connect your GitHub repo.
+4. Add API keys in the Streamlit Secrets section.
+5. Deploy — you get a live public URL to share on your resume.
 
 ---
 
-## 📚 Future Enhancements
+## 📧 Email Header Scanner
 
-* Add alerts for high error rates
-* Time-series trend analysis
-* Brute-force or suspicious IP detection
-* Integration with SIEM use cases
+Analyzes raw email headers and body for phishing indicators.
+
+```bash
+python email_scanner.py
+```
+
+Paste the raw email content when prompted. Type `END` on a new line to start the scan.
+
+**What it checks:**
+
+- Extracts all URLs from the email and scans each one
+- SPF authentication (pass / fail)
+- DKIM signature presence and validation
+- DMARC policy check
+- Reply-To domain mismatch vs From domain
+- Brand spoofing in display name (Amazon, PayPal, Apple, etc.)
+- Urgency keywords in subject line
+- Number of received hops
+
+**Example verdict:**
+
+```
+🚨 HIGH RISK — This email is likely a phishing attack
+Risk Score : 85/100
+Action     : DO NOT click any links. Report to security team immediately.
+
+SENDER ANALYSIS
+  From         : support@amaz0n-update.com
+  Display Name : Amazon Customer Service
+  Reply-To     : harvest@evil.ml
+  Subject      : URGENT: Your account has been suspended
+
+AUTHENTICATION
+  SPF          : FAIL
+  DKIM Signed  : NO
+  DMARC        : FAIL
+
+RISK FACTORS
+  [+35] Brand spoofing: amazon
+  [+30] SPF failed
+  [+25] Reply-To mismatch
+  [+20] Urgency keywords: urgent, suspended, account
+  [+50] 2 malicious URL(s) found
+```
 
 ---
 
+## 🔍 Detection Logic
+
+### Static Analysis Indicators
+
+| Indicator | Risk Points | Example |
+|---|---|---|
+| IP address in URL | 30 | `http://192.168.1.1/login` |
+| Typosquatting pattern | 30 | `amaz0n.com`, `paypa1.com` |
+| Suspicious TLD | 25 | `.tk`, `.ml`, `.ga`, `.cf`, `.gq`, `.pw`, `.xyz` |
+| Excessive subdomains | 20 | `secure.verify.login.paypal.com` |
+| `@` symbol in URL | 20 | `http://safe.com@evil.com` |
+| Double slash in path | 15 | `https://site.com//redirect` |
+| URL length > 75 chars | 15 | Long obfuscated URLs |
+| HTTP instead of HTTPS | 10 | `http://` |
+| Hex encoding | 10 | `%2F`, `%40` in path |
+| Suspicious keyword | 5 each | `login`, `verify`, `urgent`, `suspend` |
+
+### Typosquatting Patterns Detected
+
+`amaz[o0]n` · `g[o0]{2}gle` · `faceb[o0]{2}k` · `micr[o0]s[o0]ft` · `paypa[l1]` · `app[l1]e` · `netf[l1]ix` · `tw[i1]tter` · `ins[t7]agram` · `[l1]inked[i1]n` · `dropb[o0]x` · `[o0]ff[i1]ce365`
+
+### WHOIS Domain Age Check
+
+Phishing domains are almost always registered within the last 30 days.
+
+| Age | Risk Flag |
+|---|---|
+| < 30 days | HIGH — domain is brand new |
+| 30–90 days | MEDIUM — domain is recently registered |
+| > 90 days | LOW — domain age is normal |
+
+---
+
+## 📊 Risk Score Calculation
+
+| Layer | Weight | Source |
+|---|---|---|
+| Static Analysis | 20% | URL structure and pattern matching |
+| WHOIS Domain Age | 15% | Domain registration date |
+| VirusTotal | 35% | AV engine malicious + suspicious votes |
+| AbuseIPDB | 10% | IP abuse confidence score |
+| AI Semantic Analysis | 20% | LLM phishing confidence |
+
+**Final Verdict:**
+
+| Score | Verdict |
+|---|---|
+| `0 – 39` | ✅ SAFE — URL appears legitimate |
+| `40 – 69` | ⚠️ SUSPICIOUS — verify before clicking |
+| `70 – 100` | 🚨 MALICIOUS — do not visit |
+
+---
+
+## 📊 Example Output
+
+### Terminal Output — Phishing URL
+
+```
+======================================================================
+  SCANNING: http://amaz0n-security-update.com/verify-account
+======================================================================
+
+[1/5] Static analysis...
+  [+] Risk score: 75/100
+
+[2/5] WHOIS domain age check...
+  [!] Domain age: 4 days — HIGH — domain < 30 days old
+
+[3/5] VirusTotal check...
+  [+] Done
+
+[4/5] AbuseIPDB check...
+  [!] No IP in URL — AbuseIPDB skipped
+
+[5/5] AI semantic analysis...
+  [+] Done — 95% confidence
+
+======================================================================
+  SCAN REPORT
+======================================================================
+
+  STATIC ANALYSIS
+  Risk Score      : 75/100
+  HTTP (no HTTPS) : YES
+  Keywords        : security, update, verify, account
+  Typosquatting   : amaz[o0]n
+
+  WHOIS DOMAIN AGE
+  Domain Age      : 4 days (created 2026-05-01)
+  Risk Flag       : HIGH — domain < 30 days old
+
+  VIRUSTOTAL REPUTATION
+  Malicious  : 12/89
+  Suspicious : 8/89
+  Harmless   : 69/89
+
+  AI ANALYSIS (gemini-2.5-flash)
+  Verdict         : PHISHING
+  Confidence      : 95%
+  MITRE Technique : T1566.002 - Phishing: Spearphishing Link
+
+  ============================================================
+  FINAL VERDICT: MALICIOUS — HIGH RISK
+  Overall Risk : 91/100
+  Action       : DO NOT VISIT. Strong phishing indicators detected.
+  ============================================================
+```
+
+---
+
+## ⏱️ API Rate Limits
+
+| Service | Free Tier Limit | Notes |
+|---|---|---|
+| VirusTotal | 4 req/min, 500/day | Scanner waits 15s between submit and retrieve |
+| Google Gemini | 60 req/min | Free tier, no credit card needed |
+| OpenAI GPT-4o | ~$0.01–0.03/scan | Paid per token |
+| AbuseIPDB | 1,000 checks/day | Only triggers when URL has an IP address |
+| WHOIS | Unlimited | Free, no API key needed |
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Cause | Fix |
+|---|---|---|
+| `VIRUSTOTAL_API_KEY not found` | `.env` missing or wrong | Create `.env` from `.env.example`. No spaces around `=`. |
+| `GOOGLE_API_KEY not found` | Wrong provider set | Set `LLM_PROVIDER=gemini` and add `GOOGLE_API_KEY` |
+| `No compatible Gemini model found` | API key invalid | Check key at [aistudio.google.com](https://aistudio.google.com) |
+| `pip is not recognized` | Python not on PATH | Use `python -m pip install -r requirements.txt` |
+| `Rate limit exceeded` | Too many VT requests | Wait 1 minute — VT free tier: 4 req/min |
+| `OpenAI error 429` | Quota exceeded | Add credits or switch to `LLM_PROVIDER=gemini` |
+| `python-whois not installed` | Missing package | Run `pip install python-whois` |
+| `streamlit: command not found` | Not installed | Run `pip install streamlit` |
+| `ModuleNotFoundError` | Dependencies missing | Run `pip install -r requirements.txt` |
+
+---
+
+## 🔐 Security Notes
+
+- The scanner **never visits** the target URL in a browser or makes HTTP requests to it.
+- All analysis is done on the URL string and external reputation APIs only.
+- URLs are sent to VirusTotal and your chosen LLM. Do not scan private or internal URLs.
+- Always add `.env` to `.gitignore` before pushing to GitHub.
+- WHOIS lookups are done locally through the `python-whois` library — no third-party service.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome.
+
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes and test them.
+4. Commit: `git commit -m "Add: your feature description"`
+5. Push: `git push origin feature/your-feature`
+6. Open a Pull Request.
+
+**Ideas for contributions:**
+- Add URL screenshot capture with Playwright
+- Add Slack or email alert output
+- Add threat intel feed integration (URLhaus, PhishTank, OpenPhish)
+- Add Flask API wrapper
+- Add SIEM integration (Splunk HEC / Sentinel Log Analytics)
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — free to use, modify, and distribute with attribution.
+
+---
+
+## 🙏 Acknowledgements
+
+- [VirusTotal](https://www.virustotal.com) — URL and file reputation API
+- [AbuseIPDB](https://www.abuseipdb.com) — IP reputation and abuse tracking
+- [Google Gemini](https://aistudio.google.com) — AI semantic analysis
+- [OpenAI](https://openai.com) — GPT-4o AI analysis
+- [MITRE ATT&CK](https://attack.mitre.org) — Threat technique framework
+- [python-whois](https://pypi.org/project/python-whois/) — WHOIS lookup library
+
+---
+
+Made with 🔍 by **Praharsh Kumar**
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-praharshkumar23-blue?logo=linkedin)](https://linkedin.com/in/praharshkumar23)
+[![GitHub](https://img.shields.io/badge/GitHub-praharshkumar23-black?logo=github)](https://github.com/praharshkumar23)
