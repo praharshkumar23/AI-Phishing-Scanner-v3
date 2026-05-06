@@ -131,9 +131,9 @@ MITRE_PLAYBOOKS = {
 }
 
 SEVERITY_MAP = {
-    "MALICIOUS" : ("HIGH",    colors.HexColor("#dc2626")),
-    "SUSPICIOUS": ("MEDIUM",  colors.HexColor("#d97706")),
-    "SAFE"      : ("LOW",     colors.HexColor("#16a34a")),
+     "MALICIOUS" : ("HIGH",   "#dc2626"),
+    "SUSPICIOUS": ("MEDIUM", "#d97706"),
+    "SAFE"      : ("LOW",    "#16a34a"),
 }
 
 ESCALATION_MAP = {
