@@ -1,9 +1,10 @@
-# 🛡️ AI Phishing Link Scanner v3.0
+🛡️ AI Phishing Link Scanner v3.0
 
-> Multi-layer phishing detection combining static analysis, WHOIS domain age check, VirusTotal + AbuseIPDB reputation, and AI semantic analysis (Gemini / GPT-4o). Now with a **Streamlit web UI**, **bulk CSV scanning**, and an **email header phishing analyzer**.
+> Multi-layer phishing detection combining static analysis, WHOIS domain age check, VirusTotal + AbuseIPDB reputation, and AI semantic analysis (Gemini / GPT-4o). Now with a **Streamlit web UI**, **bulk CSV scanning**, **email header phishing analyzer**, **attacker simulation mode**, and **SOC incident report generator**.
 
 Built by **Praharsh Kumar** — SOC Analyst | Detection Engineering | SC-200 Certified
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-red?logo=streamlit)](https://praharsh-phishing-scanner.streamlit.app)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
@@ -24,6 +25,8 @@ Built by **Praharsh Kumar** — SOC Analyst | Detection Engineering | SC-200 Cer
 - [Usage](#-usage)
 - [Web UI — Streamlit](#-web-ui--streamlit)
 - [Email Header Scanner](#-email-header-scanner)
+- [Attacker Simulation Mode](#-attacker-simulation-mode)
+- [SOC Playbook Generator](#-soc-playbook-generator)
 - [Detection Logic](#-detection-logic)
 - [Risk Score Calculation](#-risk-score-calculation)
 - [Example Output](#-example-output)
@@ -39,7 +42,7 @@ Built by **Praharsh Kumar** — SOC Analyst | Detection Engineering | SC-200 Cer
 
 Most phishing detection tools rely on a single source. That's not enough.
 
-This scanner runs every URL through **5 independent detection layers** and combines their signals into a single weighted risk score out of 100. Version 3.0 adds a full **Streamlit web UI**, **WHOIS domain age check**, **bulk CSV scanning**, and a dedicated **email header phishing analyzer**.
+This scanner runs every URL through **5 independent detection layers** and combines their signals into a single weighted risk score out of 100. Version 3.0 adds a full **Streamlit web UI**, **WHOIS domain age check**, **bulk CSV scanning**, a dedicated **email header phishing analyzer**, an **attacker simulation mode** for brand protection research, and an automated **SOC incident report generator**.
 
 **The question it answers:**
 
@@ -58,6 +61,9 @@ This scanner runs every URL through **5 independent detection layers** and combi
 | SPF / DKIM / DMARC analysis | ❌ | ✅ |
 | Reply-To mismatch detection | ❌ | ✅ |
 | Brand spoofing in display name | ❌ | ✅ |
+| **Attacker Simulation Mode** | ❌ | ✅ |
+| **SOC Playbook & Incident Report (PDF)** | ❌ | ✅ |
+| **MITRE ATT&CK response checklist** | ❌ | ✅ |
 | JSON download from web UI | ❌ | ✅ |
 | AbuseIPDB reputation | ✅ | ✅ |
 | VirusTotal 70+ AV engines | ✅ | ✅ |
@@ -106,6 +112,7 @@ URL Input
            → Weighted risk score out of 100
            → SAFE (0–39) / SUSPICIOUS (40–69) / MALICIOUS (70–100)
            → Saved to scan_history.json
+           → Auto-generates SOC Incident Report (PDF + JSON)
            → Exportable as JSON or CSV
 ```
 
@@ -119,6 +126,8 @@ AI-Phishing-Scanner-v3/
 ├── phishing_scanner.py       # Main scanner — all 5 detection layers
 ├── app.py                    # Streamlit web UI
 ├── email_scanner.py          # Email header phishing analyzer
+├── attacker_simulation.py    # Attacker simulation & brand protection
+├── soc_playbook.py           # SOC incident report + playbook generator
 ├── requirements.txt          # All Python dependencies
 ├── .env.example              # API key template — rename to .env
 ├── .gitignore                # Excludes .env, venv, reports, cache
@@ -126,10 +135,13 @@ AI-Phishing-Scanner-v3/
 ├── README.md                 # This file
 │
 └── (auto-generated on use)
-    ├── scan_history.json              # Logs every scan
-    ├── scan_report_TIMESTAMP.json     # Per-scan JSON export
-    ├── bulk_scan_TIMESTAMP.csv        # Bulk scan CSV output
-    └── email_scan_TIMESTAMP.json      # Email scan JSON export
+    ├── scan_history.json                     # Logs every scan
+    ├── scan_report_TIMESTAMP.json            # Per-scan JSON export
+    ├── bulk_scan_TIMESTAMP.csv               # Bulk scan CSV output
+    ├── email_scan_TIMESTAMP.json             # Email scan JSON export
+    ├── SOC_Report_INC-YYYY-XXXX.pdf          # SOC incident report PDF
+    ├── SOC_Report_INC-YYYY-XXXX.json         # SOC incident report JSON
+    └── simulation_domain_TIMESTAMP.json      # Attacker simulation report
 ```
 
 ---
@@ -167,6 +179,7 @@ AI-Phishing-Scanner-v3/
 | `streamlit` | 1.32.0+ | Web UI |
 | `pandas` | 2.0.0+ | CSV processing in web UI |
 | `python-whois` | 0.9.0+ | WHOIS domain age lookup |
+| `reportlab` | 4.0.0+ | PDF SOC incident report generation |
 
 ---
 
@@ -187,7 +200,7 @@ python -m venv venv
 
 **Windows:**
 ```bash
-venv\Scripts\activate
+venv\\Scripts\\activate
 ```
 
 **Linux / macOS:**
@@ -207,8 +220,6 @@ pip install -r requirements.txt
 python --version
 pip list
 ```
-
-You should see all 8 packages listed.
 
 ---
 
@@ -359,6 +370,107 @@ RISK FACTORS
 
 ---
 
+## 🎯 Attacker Simulation Mode
+
+> For defensive research and brand protection only.
+
+Generates phishing domain variants for a target brand and checks which ones are already registered by real attackers.
+
+```bash
+python attacker_simulation.py paypal.com
+```
+
+Or interactive:
+
+```bash
+python attacker_simulation.py
+```
+
+**What it generates:**
+
+| Variant Type | Example |
+|---|---|
+| Homoglyph / Typosquatting | `paypa1.com`, `p4ypal.com` |
+| Typo Variants | `paypall.com`, `paypl.com` |
+| Combo Squatting | `secure-paypal.com`, `paypal-login.com` |
+| Subdomain Abuse | `secure.paypal.com.evil.tk` |
+| TLD Swap | `paypal.tk`, `paypal.ml`, `paypal.xyz` |
+
+**Example output:**
+
+```
+[LIVE]  paypa1-login.tk    (Combo Squatting)
+[LIVE]  paypal-verify.ml   (TLD Swap)
+[LIVE]  p4ypal.com         (Homoglyph)
+
+Generated : 52 variants
+Live DNS  : 3 registered domains found
+Scanned   : 3 through full scanner
+
+[MALICIOUS]  Risk: 89/100  paypa1-login.tk
+[SUSPICIOUS] Risk: 55/100  paypal-verify.ml
+[MALICIOUS]  Risk: 91/100  p4ypal.com
+```
+
+**Use cases:**
+- Brand protection monitoring — check if your company domain has phishing variants
+- Red team research — understand attacker techniques
+- Defensive threat hunting — proactive IOC discovery
+
+---
+
+## 📋 SOC Playbook Generator
+
+After every scan, auto-generates a formatted SOC incident report as PDF and JSON.
+
+```bash
+python soc_playbook.py scan_report.json
+```
+
+Or call it directly from code:
+
+```python
+from soc_playbook import generate_from_scan
+pdf_path = generate_from_scan(scan_result)
+```
+
+**What the report includes:**
+
+- **Incident ID** — auto-incremented (INC-2026-0001)
+- **Severity** — HIGH / MEDIUM / LOW with color coding
+- **Risk score** — out of 100
+- **IOC table** — URL, domain, VT detection count
+- **MITRE ATT&CK mapping** — technique + tactic
+- **Response playbook** — step-by-step analyst action checklist
+- **Escalation recommendation** — Tier 2 escalation guidance
+- **AI reasoning** — full Gemini analysis text
+- **Detection breakdown** — all 5 layers summarized
+
+**Sample report header:**
+
+```
+SOC INCIDENT REPORT
+═══════════════════════════════════════
+
+Incident ID  : INC-2026-0001
+Analyst      : Praharsh Kumar
+Date/Time    : 2026-05-06 12:45:00
+Severity     : HIGH
+Risk Score   : 91/100
+MITRE        : T1566.002 - Spearphishing Link
+Escalate     : YES — Escalate to Tier 2 immediately
+
+RESPONSE CHECKLIST
+  ☐  1. Block URL at web proxy and DNS filter
+  ☐  2. Search mail gateway logs for distribution
+  ☐  3. Identify all users who received the link
+  ☐  4. Check endpoint logs for click events
+  ☐  5. Force password reset for any user who clicked
+  ...
+```
+
+---
+
 ## 🔍 Detection Logic
 
 ### Static Analysis Indicators
@@ -381,8 +493,6 @@ RISK FACTORS
 `amaz[o0]n` · `g[o0]{2}gle` · `faceb[o0]{2}k` · `micr[o0]s[o0]ft` · `paypa[l1]` · `app[l1]e` · `netf[l1]ix` · `tw[i1]tter` · `ins[t7]agram` · `[l1]inked[i1]n` · `dropb[o0]x` · `[o0]ff[i1]ce365`
 
 ### WHOIS Domain Age Check
-
-Phishing domains are almost always registered within the last 30 days.
 
 | Age | Risk Flag |
 |---|---|
@@ -421,50 +531,19 @@ Phishing domains are almost always registered within the last 30 days.
   SCANNING: http://amaz0n-security-update.com/verify-account
 ======================================================================
 
-[1/5] Static analysis...
-  [+] Risk score: 75/100
-
-[2/5] WHOIS domain age check...
-  [!] Domain age: 4 days — HIGH — domain < 30 days old
-
-[3/5] VirusTotal check...
-  [+] Done
-
-[4/5] AbuseIPDB check...
-  [!] No IP in URL — AbuseIPDB skipped
-
-[5/5] AI semantic analysis...
-  [+] Done — 95% confidence
+[1/5] Static analysis...        Risk score: 75/100
+[2/5] WHOIS domain age...       4 days — HIGH — domain < 30 days old
+[3/5] VirusTotal check...       12 malicious / 89 engines
+[4/5] AbuseIPDB check...        No IP in URL — skipped
+[5/5] AI semantic analysis...   95% confidence — PHISHING
 
 ======================================================================
-  SCAN REPORT
-======================================================================
-
-  STATIC ANALYSIS
-  Risk Score      : 75/100
-  HTTP (no HTTPS) : YES
-  Keywords        : security, update, verify, account
-  Typosquatting   : amaz[o0]n
-
-  WHOIS DOMAIN AGE
-  Domain Age      : 4 days (created 2026-05-01)
-  Risk Flag       : HIGH — domain < 30 days old
-
-  VIRUSTOTAL REPUTATION
-  Malicious  : 12/89
-  Suspicious : 8/89
-  Harmless   : 69/89
-
-  AI ANALYSIS (gemini-2.5-flash)
-  Verdict         : PHISHING
-  Confidence      : 95%
-  MITRE Technique : T1566.002 - Phishing: Spearphishing Link
-
-  ============================================================
   FINAL VERDICT: MALICIOUS — HIGH RISK
   Overall Risk : 91/100
+  MITRE        : T1566.002 - Phishing: Spearphishing Link
   Action       : DO NOT VISIT. Strong phishing indicators detected.
-  ============================================================
+  SOC Report   : SOC_Report_INC-2026-0001.pdf generated
+======================================================================
 ```
 
 ---
@@ -492,6 +571,7 @@ Phishing domains are almost always registered within the last 30 days.
 | `Rate limit exceeded` | Too many VT requests | Wait 1 minute — VT free tier: 4 req/min |
 | `OpenAI error 429` | Quota exceeded | Add credits or switch to `LLM_PROVIDER=gemini` |
 | `python-whois not installed` | Missing package | Run `pip install python-whois` |
+| `reportlab not installed` | Missing package | Run `pip install reportlab` |
 | `streamlit: command not found` | Not installed | Run `pip install streamlit` |
 | `ModuleNotFoundError` | Dependencies missing | Run `pip install -r requirements.txt` |
 
@@ -504,6 +584,7 @@ Phishing domains are almost always registered within the last 30 days.
 - URLs are sent to VirusTotal and your chosen LLM. Do not scan private or internal URLs.
 - Always add `.env` to `.gitignore` before pushing to GitHub.
 - WHOIS lookups are done locally through the `python-whois` library — no third-party service.
+- Attacker Simulation Mode is for **defensive research only**. Do not use for malicious purposes.
 
 ---
 
@@ -520,10 +601,11 @@ Contributions are welcome.
 
 **Ideas for contributions:**
 - Add URL screenshot capture with Playwright
-- Add Slack or email alert output
+- Add Slack or Teams alert integration
 - Add threat intel feed integration (URLhaus, PhishTank, OpenPhish)
-- Add Flask API wrapper
+- Add Flask REST API wrapper
 - Add SIEM integration (Splunk HEC / Sentinel Log Analytics)
+- Add real-time threat feed dashboard
 
 ---
 
@@ -541,6 +623,7 @@ This project is licensed under the **MIT License** — free to use, modify, and 
 - [OpenAI](https://openai.com) — GPT-4o AI analysis
 - [MITRE ATT&CK](https://attack.mitre.org) — Threat technique framework
 - [python-whois](https://pypi.org/project/python-whois/) — WHOIS lookup library
+- [ReportLab](https://www.reportlab.com) — PDF generation
 
 ---
 
@@ -548,3 +631,11 @@ Made with 🔍 by **Praharsh Kumar**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-praharshkumar23-blue?logo=linkedin)](https://linkedin.com/in/praharshkumar23)
 [![GitHub](https://img.shields.io/badge/GitHub-praharshkumar23-black?logo=github)](https://github.com/praharshkumar23)
+"""
+
+os.makedirs("output", exist_ok=True)
+with open("output/README.md", "w") as f:
+    f.write(readme)
+
+print(f"Done. Characters: {len(readme)}")
+print(f"Lines: {readme.count(chr(10))}")
