@@ -1,4 +1,4 @@
-🛡️ AI Phishing Link Scanner v3.0
+# 🛡️ AI Phishing Link Scanner v3.0
 
 > Multi-layer phishing detection combining static analysis, WHOIS domain age check, VirusTotal + AbuseIPDB reputation, and AI semantic analysis (Gemini / GPT-4o). Now with a **Streamlit web UI**, **bulk CSV scanning**, **email header phishing analyzer**, **attacker simulation mode**, and **SOC incident report generator**.
 
@@ -163,8 +163,8 @@ AI-Phishing-Scanner-v3/
 | **OpenAI** | AI analysis (alternative to Gemini) | ~$0.01–0.03/scan | [platform.openai.com](https://platform.openai.com/api-keys) |
 | **AbuseIPDB** | IP reputation check | Free (1,000/day) | [abuseipdb.com](https://www.abuseipdb.com/register) |
 
-> You only need **one** LLM provider — Gemini or OpenAI.
-> AbuseIPDB is optional — the scanner skips it automatically if no key is provided.
+> You only need **one** LLM provider — Gemini or OpenAI.  
+> AbuseIPDB is optional — the scanner skips it automatically if no key is provided.  
 > WHOIS domain age check is **free with no API key**.
 
 ### Python Packages
@@ -200,7 +200,7 @@ python -m venv venv
 
 **Windows:**
 ```bash
-venv\\Scripts\\activate
+venv\Scripts\activate
 ```
 
 **Linux / macOS:**
@@ -308,8 +308,8 @@ Opens at `http://localhost:8501` in your browser.
 **Tabs:**
 
 - **Single URL Scan** — enter any URL, see color-coded verdict with full breakdown
-- **Bulk CSV Scan** — upload a CSV file, scan all URLs, download report
-- **Scan History** — view all previous scans, export as CSV
+- **Email Scanner** — analyze raw email content for embedded phishing URLs
+- **Attacker Simulation** — generate and check phishing domain variants for any brand
 
 **Deploy free on Streamlit Cloud:**
 
@@ -318,6 +318,24 @@ Opens at `http://localhost:8501` in your browser.
 3. Connect your GitHub repo.
 4. Add API keys in the Streamlit Secrets section.
 5. Deploy — you get a live public URL to share on your resume.
+
+---
+
+## 🚨 Real Scan — Live Demo Result
+
+> This is an actual scan run against a real malicious URL using this tool.
+
+**URL scanned:** `https://ybrjaouww.com/`
+
+| Detection Layer | Result |
+|---|---|
+| Static Analysis | `0/100` — no obvious static indicators |
+| VirusTotal | `11 / 93` engines flagged as **MALICIOUS** |
+| AI Analysis (Gemini) | **PHISHING — 95% confidence** |
+| MITRE ATT&CK | `T1566.002 — Spearphishing Link` |
+| **Final Verdict** | ✅ **CAUGHT — MALICIOUS** |
+
+**Why this matters:** Static analysis scored it 0/100 — the URL looked clean structurally. But VirusTotal flagged it across 11 engines and Gemini identified it as phishing with 95% confidence. This is exactly why single-layer detection fails. Multi-layer detection is not optional in a real SOC.
 
 ---
 
@@ -525,6 +543,7 @@ RESPONSE CHECKLIST
 ## 📊 Example Output
 
 ### Terminal Output — Phishing URL
+<img width="1432" height="836" alt="Screenshot 2026-05-07 105829" src="https://github.com/user-attachments/assets/98a5c876-7229-409e-bda8-6f70f6afae54" />
 
 ```
 ======================================================================
@@ -631,11 +650,3 @@ Made with 🔍 by **Praharsh Kumar**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-praharshkumar23-blue?logo=linkedin)](https://linkedin.com/in/praharshkumar23)
 [![GitHub](https://img.shields.io/badge/GitHub-praharshkumar23-black?logo=github)](https://github.com/praharshkumar23)
-"""
-
-os.makedirs("output", exist_ok=True)
-with open("output/README.md", "w") as f:
-    f.write(readme)
-
-print(f"Done. Characters: {len(readme)}")
-print(f"Lines: {readme.count(chr(10))}")
